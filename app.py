@@ -1011,13 +1011,15 @@ def logout():
 
 
 # ==============================
-# START
+# START / INITIALIZATION
 # ==============================
-if __name__ == "__main__":
+with app.app_context():
     create_tables()
     create_feedback_table()   # Phase 4
     setup_default_admin()
     setup_default_users()
+
+if __name__ == "__main__":
     print("Server started at http://127.0.0.1:5000")
     print("Officer secret key: police@2025")
     app.run(debug=True)
