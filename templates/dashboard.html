@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Crime Spot Detection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+        :root{--red:#e63946;--red-dark:#b5202c;--gold:#f4a261;--green:#2ec97a;--blue:#4a9eff;
+              --dark:#0a0a0f;--dark-2:#111118;--dark-3:#1a1a24;--dark-4:#22222f;
+              --border:rgba(255,255,255,0.07);--text:#e8e8f0;--text-dim:#7a7a9a;
+              --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--display:'Bebas Neue',sans-serif}
+        body{background:var(--dark);color:var(--text);font-family:var(--sans);min-height:100vh}
+        body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(230,57,70,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(230,57,70,0.025) 1px,transparent 1px);background-size:40px 40px;animation:gridShift 20s linear infinite;z-index:0;pointer-events:none}
+        @keyframes gridShift{0%{transform:translate(0,0)}100%{transform:translate(40px,40px)}}
+        .scanlines{position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);z-index:1;pointer-events:none}
+        .side-accent{position:fixed;top:0;bottom:0;width:3px;z-index:2;pointer-events:none}
+        .side-accent.left{left:0;background:linear-gradient(to bottom,transparent,var(--red),transparent)}
+        .side-accent.right{right:0;background:linear-gradient(to bottom,transparent,var(--red-dark),transparent)}
+        .navbar{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;backdrop-filter:blur(12px)}
+        .navbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(to right,var(--red),transparent,var(--red));opacity:0.35}
+        .nav-brand{font-family:var(--display);font-size:22px;letter-spacing:0.1em;color:var(--text)}
+        .nav-brand span{color:var(--red)}
+        .nav-links{display:flex;align-items:center;gap:4px}
+        .nav-links a{font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);text-decoration:none;padding:6px 14px;border:1px solid transparent;transition:all 0.2s}
+        .nav-links a:hover{color:var(--text);border-color:var(--border);background:var(--dark-3)}
+        .nav-links a.active{color:var(--red);border-color:rgba(230,57,70,0.3);background:rgba(230,57,70,0.05)}
+        .nav-links a.nav-logout{color:var(--red);border-color:rgba(230,57,70,0.2)}
+        .nav-links a.nav-logout:hover{background:rgba(230,57,70,0.1);border-color:var(--red)}
+        .nav-user{font-family:var(--mono);font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:6px}
+        .nav-user::before{content:'●';color:var(--green);font-size:8px;animation:pulse 2s ease-in-out infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+        .container{position:relative;z-index:5;max-width:1100px;margin:0 auto;padding:36px 24px 80px}
+        .alert{font-family:var(--mono);font-size:12px;padding:10px 14px;margin-bottom:14px;border-left:3px solid;letter-spacing:0.04em}
+        .alert-danger{background:rgba(230,57,70,0.1);border-color:var(--red);color:#ff8a94}
+        .alert-success{background:rgba(46,201,122,0.08);border-color:var(--green);color:#6eefaa}
+        .alert-warning{background:rgba(244,162,97,0.1);border-color:var(--gold);color:var(--gold)}
+        .alert-info{background:rgba(74,158,255,0.1);border-color:var(--blue);color:#90b4ff}
+        .welcome-banner{background:var(--dark-3);border:1px solid var(--border);border-left:3px solid var(--red);padding:20px 24px;margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;animation:fadeUp 0.4s ease forwards}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        .welcome-left h2{font-family:var(--display);font-size:28px;letter-spacing:0.1em}
+        .welcome-left h2 span{color:var(--red)}
+        .welcome-left p{font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:0.08em;margin-top:4px}
+        .clock{font-family:var(--display);font-size:32px;color:var(--red);letter-spacing:0.08em}
+        .no-dataset-warn{background:rgba(244,162,97,0.07);border:1px solid rgba(244,162,97,0.25);border-left:3px solid var(--gold);padding:14px 18px;margin-bottom:28px;font-family:var(--mono);font-size:12px;color:var(--gold);letter-spacing:0.05em;display:flex;align-items:center;gap:10px}
+        .section-title{font-family:var(--display);font-size:22px;letter-spacing:0.1em;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:12px}
+        .section-title::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}
+        /* Stats Grid — 4 columns for Phase 4 feedback card */
+        .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:36px}
+        .stat-card{background:var(--dark-3);border:1px solid var(--border);padding:20px;position:relative;overflow:hidden;animation:fadeUp 0.4s ease both}
+        .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+        .stat-card.red::before{background:var(--red)}
+        .stat-card.blue::before{background:var(--blue)}
+        .stat-card.orange::before{background:var(--gold)}
+        .stat-card.green::before{background:var(--green)}
+        .stat-icon{font-size:24px;margin-bottom:10px;opacity:0.8}
+        .stat-val{font-family:var(--display);font-size:44px;line-height:1}
+        .stat-card.red .stat-val{color:var(--red)}
+        .stat-card.blue .stat-val{color:var(--blue)}
+        .stat-card.orange .stat-val{color:var(--gold)}
+        .stat-card.green .stat-val{color:var(--green)}
+        .stat-label{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.12em;text-transform:uppercase;margin-top:6px}
+        /* Feature Grid — 4 cards */
+        .feature-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:36px}
+        .feature-card{background:var(--dark-3);border:1px solid var(--border);padding:24px;text-decoration:none;color:inherit;position:relative;overflow:hidden;transition:all 0.25s;display:block;animation:fadeUp 0.4s ease both}
+        .feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+        .feature-card.upload::before{background:var(--blue)}
+        .feature-card.map::before{background:var(--red)}
+        .feature-card.predict::before{background:var(--gold)}
+        .feature-card.analytics::before{background:var(--green)}
+        .feature-card:hover{border-color:rgba(255,255,255,0.14);transform:translateY(-3px);background:var(--dark-4)}
+        .feature-icon{font-size:32px;margin-bottom:14px}
+        .feature-title{font-family:var(--display);font-size:20px;letter-spacing:0.08em;margin-bottom:8px}
+        .feature-card.upload .feature-title{color:var(--blue)}
+        .feature-card.map .feature-title{color:var(--red)}
+        .feature-card.predict .feature-title{color:var(--gold)}
+        .feature-card.analytics .feature-title{color:var(--green)}
+        .feature-desc{font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:0.04em;line-height:1.7}
+        .feature-arrow{position:absolute;bottom:16px;right:16px;font-family:var(--mono);font-size:18px;color:var(--border);transition:color 0.2s}
+        .feature-card:hover .feature-arrow{color:var(--text-dim)}
+        /* Phase 3: Time Forecast */
+        .forecast-section{margin-bottom:40px;animation:fadeUp 0.4s 0.15s ease both}
+        .forecast-header{background:var(--dark-3);border:1px solid var(--border);border-left:3px solid var(--gold);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+        .forecast-header-left h3{font-family:var(--display);font-size:20px;letter-spacing:0.1em;color:var(--gold)}
+        .forecast-header-left p{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.08em;margin-top:3px}
+        .peak-badge{background:rgba(230,57,70,0.12);border:1px solid rgba(230,57,70,0.3);padding:8px 14px;text-align:center}
+        .peak-badge-label{font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:0.12em;text-transform:uppercase}
+        .peak-badge-val{font-family:var(--display);font-size:20px;color:var(--red);letter-spacing:0.06em}
+        .forecast-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+        .forecast-card{background:var(--dark-3);border:1px solid var(--border);padding:16px 12px;position:relative;overflow:hidden}
+        .fc-icon{font-size:22px;margin-bottom:8px}
+        .fc-name{font-family:var(--display);font-size:17px;letter-spacing:0.06em;color:var(--text);margin-bottom:2px}
+        .fc-label{font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:0.06em;margin-bottom:10px}
+        .fc-bar-bg{background:var(--dark-4);border:1px solid var(--border);height:8px;margin-bottom:8px}
+        .fc-bar-fill{height:100%;transition:width 1.2s ease}
+        .fc-risk{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;padding:3px 8px;display:inline-block}
+        .fc-count{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:4px;letter-spacing:0.04em}
+        .no-forecast{background:var(--dark-2);border:1px solid var(--border);padding:24px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text-dim);letter-spacing:0.06em}
+        /* Steps */
+        .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+        .step-card{background:var(--dark-2);border:1px solid var(--border);padding:18px;animation:fadeUp 0.4s ease both}
+        .step-num{font-family:var(--display);font-size:48px;color:rgba(230,57,70,0.15);line-height:1;margin-bottom:4px}
+        .step-title{font-family:var(--display);font-size:16px;letter-spacing:0.08em;color:var(--text);margin-bottom:6px}
+        .step-desc{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.05em;line-height:1.7}
+        .status-bar{position:fixed;bottom:0;left:0;right:0;height:28px;background:rgba(10,10,15,0.97);border-top:1px solid var(--border);display:flex;align-items:center;overflow:hidden;z-index:100}
+        .status-label{font-family:var(--mono);font-size:10px;color:var(--red);letter-spacing:0.1em;padding:0 12px;border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0}
+        .status-ticker{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.05em;white-space:nowrap;animation:ticker 40s linear infinite;padding-left:20px}
+        @keyframes ticker{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
+        @media(max-width:900px){.stats-grid,.feature-grid,.forecast-grid,.steps-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:600px){.stats-grid,.feature-grid,.forecast-grid,.steps-grid{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+<div class="scanlines"></div>
+<div class="side-accent left"></div>
+<div class="side-accent right"></div>
+
+<nav class="navbar">
+    <div class="nav-brand">🚔 <span>CRIME</span> SPOT DETECTION</div>
+    <div class="nav-links">
+        <a href="/dashboard" class="active">Dashboard</a>
+        <a href="/upload">Upload Data</a>
+        <a href="/map">Crime Map</a>
+        <a href="/predict">Predict</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/logout" class="nav-logout">Logout</a>
+    </div>
+    <div class="nav-user">👮 {{ username }}</div>
+</nav>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for category, message in messages %}
+            <div class="alert alert-{{ category }}">⚡ {{ message }}</div>
+        {% endfor %}{% endif %}
+    {% endwith %}
+
+    <div class="welcome-banner">
+        <div class="welcome-left">
+            <h2>WELCOME BACK, <span>{{ username | upper }}</span></h2>
+            <p>// Crime Hotspot Detection System — Amrita Vishwa Vidyapeetham</p>
+        </div>
+        <div class="clock" id="clock">--:--:--</div>
+    </div>
+
+    {% if not stats.dataset_loaded %}
+    <div class="no-dataset-warn">⚠ &nbsp; No dataset loaded. Upload a crime CSV to begin analysis.</div>
+    {% endif %}
+
+    <!-- Phase 1 + Phase 4 Stats Grid (4 cards) -->
+    <div class="stats-grid">
+        <div class="stat-card red" style="animation-delay:0.05s">
+            <div class="stat-icon">🔴</div>
+            <div class="stat-val">{{ stats.total_crimes }}</div>
+            <div class="stat-label">Total Crime Records</div>
+        </div>
+        <div class="stat-card blue" style="animation-delay:0.1s">
+            <div class="stat-icon">🏙️</div>
+            <div class="stat-val">{{ stats.cities }}</div>
+            <div class="stat-label">Cities in Dataset</div>
+        </div>
+        <div class="stat-card orange" style="animation-delay:0.15s">
+            <div class="stat-icon">📋</div>
+            <div class="stat-val">{{ stats.crime_types }}</div>
+            <div class="stat-label">Crime Categories</div>
+        </div>
+        <!-- Phase 4: Feedback count -->
+        <div class="stat-card green" style="animation-delay:0.2s">
+            <div class="stat-icon">💬</div>
+            <div class="stat-val">{{ feedback_count }}</div>
+            <div class="stat-label">Feedback Collected</div>
+        </div>
+    </div>
+
+    <!-- Phase 3: Crime Time Forecast -->
+    <div class="forecast-section">
+        <div class="section-title">⏰ CRIME TIME FORECAST</div>
+        {% if time_forecast %}
+        <div class="forecast-header">
+            <div class="forecast-header-left">
+                <h3>HIGH-RISK CRIME WINDOWS</h3>
+                <p>// Time distribution analysis across {{ stats.total_crimes }} records</p>
+            </div>
+            <div class="peak-badge">
+                <div class="peak-badge-label">Peak Period</div>
+                <div class="peak-badge-val">{{ peak_period }} ({{ peak_hour }}:00)</div>
+            </div>
+        </div>
+        <div class="forecast-grid">
+            {% for window in time_forecast %}
+            <div class="forecast-card" style="border-top:3px solid {{ window.risk_color }};">
+                <div class="fc-icon">{{ window.icon }}</div>
+                <div class="fc-name">{{ window.name }}</div>
+                <div class="fc-label">{{ window.label }}</div>
+                <div class="fc-bar-bg">
+                    <div class="fc-bar-fill"
+                         style="width:0%;background:{{ window.risk_color }};"
+                         data-width="{{ window.bar_pct }}"></div>
+                </div>
+                <span class="fc-risk"
+                      style="color:{{ window.risk_color }};background:{{ window.risk_color }}18;border:1px solid {{ window.risk_color }}44;">
+                    {{ window.risk }}
+                </span>
+                <div class="fc-count">{{ window.count }} crimes</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-forecast">⏰ &nbsp; Upload a dataset with an 'hour' column to see the Crime Time Forecast.</div>
+        {% endif %}
+    </div>
+
+    <!-- Feature Cards -->
+    <div class="section-title">SYSTEM MODULES</div>
+    <div class="feature-grid">
+        <a href="/upload" class="feature-card upload" style="animation-delay:0.1s">
+            <div class="feature-icon">📂</div>
+            <div class="feature-title">UPLOAD DATA</div>
+            <div class="feature-desc">Import CSV. Triggers DBSCAN clustering, Random Forest training, and time forecast.</div>
+            <div class="feature-arrow">→</div>
+        </a>
+        <a href="/map" class="feature-card map" style="animation-delay:0.15s">
+            <div class="feature-icon">🗺️</div>
+            <div class="feature-title">CRIME MAP</div>
+            <div class="feature-desc">Interactive Folium map with risk-colored clusters. Popups show peak crime time.</div>
+            <div class="feature-arrow">→</div>
+        </a>
+        <a href="/predict" class="feature-card predict" style="animation-delay:0.2s">
+            <div class="feature-icon">🤖</div>
+            <div class="feature-title">PREDICT</div>
+            <div class="feature-desc">Crime type prediction + probability score + explanation + feedback form.</div>
+            <div class="feature-arrow">→</div>
+        </a>
+        <a href="/analytics" class="feature-card analytics" style="animation-delay:0.25s">
+            <div class="feature-icon">📊</div>
+            <div class="feature-title">ANALYTICS</div>
+            <div class="feature-desc">City analysis, crime type breakdown, hourly trends, and filterable data table.</div>
+            <div class="feature-arrow">→</div>
+        </a>
+    </div>
+
+    <!-- How It Works -->
+    <div class="section-title">HOW IT WORKS</div>
+    <div class="steps-grid">
+        <div class="step-card" style="animation-delay:0.1s">
+            <div class="step-num">01</div>
+            <div class="step-title">UPLOAD CSV</div>
+            <div class="step-desc">Upload crime data. DBSCAN clusters locations, Random Forest trains, time forecast computes — all automatically.</div>
+        </div>
+        <div class="step-card" style="animation-delay:0.15s">
+            <div class="step-num">02</div>
+            <div class="step-title">CRIME MAP</div>
+            <div class="step-desc">Interactive map shows High/Medium/Low risk zones. Click markers for crime details and peak crime time.</div>
+        </div>
+        <div class="step-card" style="animation-delay:0.2s">
+            <div class="step-num">03</div>
+            <div class="step-title">PREDICT + EXPLAIN</div>
+            <div class="step-desc">Enter coordinates and time. Get crime type, probability score, context factors, and why the prediction was made.</div>
+        </div>
+        <div class="step-card" style="animation-delay:0.25s">
+            <div class="step-num">04</div>
+            <div class="step-title">FEEDBACK LOOP</div>
+            <div class="step-desc">Officers confirm or correct predictions. Feedback is logged to improve system accuracy over time.</div>
+        </div>
+    </div>
+</div>
+
+<div class="status-bar">
+    <div class="status-label">● LIVE</div>
+    <div class="status-ticker">
+        SYSTEM ONLINE // OFFICER {{ username }} AUTHENTICATED //
+        RECORDS: {{ stats.total_crimes }} // CITIES: {{ stats.cities }} //
+        FEEDBACK COLLECTED: {{ feedback_count }} //
+        {% if peak_period %}PEAK CRIME PERIOD: {{ peak_period }} // {% endif %}
+        ALL MODULES ACTIVE //
+    </div>
+</div>
+
+<script>
+    function updateClock() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2,'0');
+        const m = String(now.getMinutes()).padStart(2,'0');
+        const s = String(now.getSeconds()).padStart(2,'0');
+        document.getElementById('clock').textContent = h+':'+m+':'+s;
+    }
+    updateClock(); setInterval(updateClock, 1000);
+
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            document.querySelectorAll('.fc-bar-fill').forEach(function (bar) {
+                bar.style.width = bar.getAttribute('data-width') + '%';
+            });
+        }, 300);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Dataset - Crime Spot Detection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --red: #e63946; --red-dark: #b5202c; --gold: #f4a261;
+            --green: #2ec97a; --blue: #4a9eff;
+            --dark: #0a0a0f; --dark-2: #111118; --dark-3: #1a1a24; --dark-4: #22222f;
+            --border: rgba(255,255,255,0.07); --text: #e8e8f0; --text-dim: #7a7a9a;
+            --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif; --display: 'Bebas Neue', sans-serif;
+        }
+        body { background-color: var(--dark); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+        body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(230,57,70,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(230,57,70,0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridShift 20s linear infinite; z-index: 0; pointer-events: none; }
+        @keyframes gridShift { 0% { transform: translate(0,0); } 100% { transform: translate(40px,40px); } }
+        .scanlines { position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px); z-index: 1; pointer-events: none; }
+        .side-accent { position: fixed; top: 0; bottom: 0; width: 3px; z-index: 2; pointer-events: none; }
+        .side-accent.left  { left: 0;  background: linear-gradient(to bottom, transparent, var(--red), transparent); }
+        .side-accent.right { right: 0; background: linear-gradient(to bottom, transparent, var(--red-dark), transparent); }
+        .navbar { position: sticky; top: 0; z-index: 100; background: rgba(10,10,15,0.95); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; height: 56px; backdrop-filter: blur(10px); }
+        .navbar::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(to right, var(--red), transparent, var(--red)); opacity: 0.4; }
+        .nav-brand { font-family: var(--display); font-size: 22px; letter-spacing: 0.1em; color: var(--text); }
+        .nav-brand span { color: var(--red); }
+        .nav-links { display: flex; align-items: center; gap: 4px; }
+        .nav-links a { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; padding: 6px 14px; border: 1px solid transparent; transition: all 0.2s; }
+        .nav-links a:hover { color: var(--text); border-color: var(--border); background: var(--dark-3); }
+        .nav-links a.active { color: var(--red); border-color: rgba(230,57,70,0.3); background: rgba(230,57,70,0.05); }
+        .nav-links a.nav-logout { color: var(--red); border-color: rgba(230,57,70,0.2); }
+        .nav-links a.nav-logout:hover { background: rgba(230,57,70,0.1); border-color: var(--red); }
+        .nav-user { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.08em; display: flex; align-items: center; gap: 6px; }
+        .nav-user::before { content: '●'; color: var(--green); font-size: 8px; animation: pulse 2s ease-in-out infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .container { position: relative; z-index: 5; max-width: 800px; margin: 0 auto; padding: 32px 24px 80px; }
+        .alert { font-family: var(--mono); font-size: 12px; padding: 10px 14px; margin-bottom: 16px; border-left: 3px solid; letter-spacing: 0.04em; }
+        .alert-danger  { background: rgba(230,57,70,0.1);  border-color: var(--red);   color: #ff8a94; }
+        .alert-success { background: rgba(46,201,122,0.08); border-color: var(--green); color: #6eefaa; }
+        .alert-warning { background: rgba(244,162,97,0.1);  border-color: var(--gold);  color: var(--gold); }
+        .alert-info    { background: rgba(74,158,255,0.1);  border-color: var(--blue);  color: #90b4ff; }
+        .page-header { margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border); animation: fadeUp 0.5s ease forwards; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .page-header h1 { font-family: var(--display); font-size: 40px; letter-spacing: 0.05em; color: var(--text); }
+        .page-header h1 span { color: var(--red); }
+        .page-header p { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 8px; }
+        .page-header p::before { content: '// '; color: var(--red); opacity: 0.7; }
+        .section-title { font-family: var(--display); font-size: 20px; letter-spacing: 0.1em; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 12px; }
+        .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, var(--border), transparent); }
+        .dataset-status { background: var(--dark-3); border: 1px solid var(--border); border-left: 3px solid var(--green); padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; animation: fadeUp 0.5s 0.05s ease both; }
+        .dataset-status.empty { border-left-color: var(--gold); }
+        .ds-left { display: flex; align-items: center; gap: 12px; }
+        .ds-icon { font-size: 20px; }
+        .ds-label { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+        .ds-value { font-family: var(--display); font-size: 18px; color: var(--green); letter-spacing: 0.05em; }
+        .ds-value.empty { color: var(--gold); }
+        .info-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 28px; animation: fadeUp 0.5s 0.1s ease both; }
+        .info-card { background: var(--dark-2); border: 1px solid var(--border); padding: 16px; }
+        .info-card h4 { font-family: var(--mono); font-size: 11px; color: var(--text); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+        .info-card p { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+        .col-hint { background: rgba(74,158,255,0.05); border: 1px solid rgba(74,158,255,0.2); border-left: 3px solid var(--blue); padding: 14px 16px; margin-bottom: 24px; animation: fadeUp 0.5s 0.12s ease both; }
+        .col-hint-title { font-family: var(--mono); font-size: 10px; color: var(--blue); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+        .col-hint-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+        .col-hint-label { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+        .col-hint-val { font-family: var(--mono); font-size: 12px; color: var(--gold); margin-top: 2px; }
+        .upload-card { background: var(--dark-3); border: 1px solid var(--border); padding: 28px; margin-bottom: 24px; position: relative; animation: fadeUp 0.5s 0.15s ease both; }
+        .upload-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(to right, var(--red), transparent); }
+        .drop-zone { border: 2px dashed rgba(230,57,70,0.3); padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 24px; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--red); background: rgba(230,57,70,0.03); }
+        .drop-icon { font-size: 40px; margin-bottom: 12px; }
+        .drop-title { font-family: var(--display); font-size: 24px; letter-spacing: 0.08em; color: var(--text); margin-bottom: 6px; }
+        .drop-sub { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.08em; }
+        .drop-sub span { color: var(--red); }
+        .file-input { display: none; }
+        .file-chosen { font-family: var(--mono); font-size: 11px; color: var(--green); margin-top: 10px; letter-spacing: 0.06em; display: none; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; display: block; margin-bottom: 8px; }
+        .form-label span { color: var(--gold); margin-left: 6px; font-size: 9px; }
+        .select-wrapper { position: relative; }
+        .select-wrapper::after { content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-dim); pointer-events: none; }
+        .form-select { width: 100%; background: var(--dark-2); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 13px; padding: 11px 32px 11px 12px; outline: none; transition: border-color 0.2s; letter-spacing: 0.03em; appearance: none; cursor: pointer; }
+        .form-select:focus { border-color: var(--red); background: rgba(230,57,70,0.03); }
+        .form-select option { background: var(--dark-2); color: var(--text); }
+        .form-select option[value=""] { color: var(--text-dim); }
+        .select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .btn-submit { width: 100%; background: var(--red); color: white; font-family: var(--display); font-size: 20px; letter-spacing: 0.15em; padding: 14px; border: none; cursor: pointer; position: relative; overflow: hidden; transition: background 0.2s; margin-top: 8px; }
+        .btn-submit::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent); transform: translateX(-100%); transition: transform 0.5s ease; }
+        .btn-submit:hover { background: var(--red-dark); }
+        .btn-submit:hover::after { transform: translateX(100%); }
+        .btn-submit:active { transform: scale(0.99); }
+        .btn-submit:disabled { background: #333; cursor: not-allowed; color: #555; }
+        .status-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 28px; background: rgba(10,10,15,0.97); border-top: 1px solid var(--border); display: flex; align-items: center; overflow: hidden; z-index: 100; }
+        .status-label { font-family: var(--mono); font-size: 10px; color: var(--red); letter-spacing: 0.1em; padding: 0 12px; border-right: 1px solid var(--border); white-space: nowrap; flex-shrink: 0; }
+        .status-ticker { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.05em; white-space: nowrap; animation: ticker 40s linear infinite; padding-left: 20px; }
+        @keyframes ticker { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+        @media (max-width: 600px) { .select-grid { grid-template-columns: 1fr; } .info-grid { grid-template-columns: 1fr; } .col-hint-grid { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <div class="side-accent left"></div>
+    <div class="side-accent right"></div>
+
+    <nav class="navbar">
+        <div class="nav-brand">🚔 <span>CRIME</span> SPOT DETECTION</div>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/upload" class="active">Upload Data</a>
+            <a href="/map">Crime Map</a>
+            <a href="/predict">Predict</a>
+            <a href="/analytics" style="color:#a78bfa;border-color:rgba(167,139,250,0.2);">Analytics</a>
+            <a href="/logout" class="nav-logout">Logout</a>
+        </div>
+        <div class="nav-user">👮 {{ username }}</div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">⚡ {{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="page-header">
+            <h1>UPLOAD <span>DATASET</span></h1>
+            <p>Upload CSV crime data for DBSCAN clustering &amp; Random Forest analysis</p>
+        </div>
+
+        {% if dataset_loaded %}
+        <div class="dataset-status">
+            <div class="ds-left">
+                <div class="ds-icon">🗂️</div>
+                <div>
+                    <div class="ds-label">Dataset Loaded</div>
+                    <div class="ds-value">{{ total_crimes }} records across {{ cities }} cities</div>
+                </div>
+            </div>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">Upload new to replace →</span>
+        </div>
+        {% else %}
+        <div class="dataset-status empty">
+            <div class="ds-left">
+                <div class="ds-icon">⚠️</div>
+                <div>
+                    <div class="ds-label">No Dataset</div>
+                    <div class="ds-value empty">Upload a CSV file to begin</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h4>📋 Required Columns</h4>
+                <p>Your CSV must have columns for latitude, longitude, city name, and crime type.</p>
+            </div>
+            <div class="info-card">
+                <h4>📁 File Format</h4>
+                <p>Only CSV files accepted. Make sure headers are in the first row.</p>
+            </div>
+            <div class="info-card">
+                <h4>🗺️ After Upload</h4>
+                <p>DBSCAN clusters crimes. Then view the map and run ML predictions.</p>
+            </div>
+        </div>
+
+        <div class="col-hint">
+            <div class="col-hint-title">📌 For crime_dataset_india_ready.csv — select these columns:</div>
+            <div class="col-hint-grid">
+                <div class="col-hint-item">
+                    <div class="col-hint-label">Latitude</div>
+                    <div class="col-hint-val">latitude</div>
+                </div>
+                <div class="col-hint-item">
+                    <div class="col-hint-label">Longitude</div>
+                    <div class="col-hint-val">longitude</div>
+                </div>
+                <div class="col-hint-item">
+                    <div class="col-hint-label">City</div>
+                    <div class="col-hint-val">City</div>
+                </div>
+                <div class="col-hint-item">
+                    <div class="col-hint-label">Crime Type</div>
+                    <div class="col-hint-val">Crime Description</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">UPLOAD CSV FILE</div>
+        <div class="upload-card">
+            <form method="POST" action="/upload" enctype="multipart/form-data" id="upload-form">
+                <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file').click()">
+                    <div class="drop-icon">📂</div>
+                    <div class="drop-title">DROP CSV FILE HERE</div>
+                    <div class="drop-sub">or click to browse &nbsp;|&nbsp; <span>.csv files only</span></div>
+                    <div class="file-chosen" id="file-chosen">✔ File selected</div>
+                </div>
+                <input type="file" name="file" id="csv-file" class="file-input" accept=".csv" required>
+
+                <div class="section-title" style="font-size:16px; margin-bottom:16px;">SELECT COLUMNS</div>
+                <div class="select-grid">
+                    <div class="form-group">
+                        <label class="form-label">▸ Latitude Column <span>required</span></label>
+                        <div class="select-wrapper">
+                            <select name="lat_col" class="form-select" required>
+                                <option value="">-- Select column --</option>
+                                <option value="latitude">latitude</option>
+                                <option value="lat">lat</option>
+                                <option value="Latitude">Latitude</option>
+                                <option value="LAT">LAT</option>
+                                <option value="LATITUDE">LATITUDE</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">▸ Longitude Column <span>required</span></label>
+                        <div class="select-wrapper">
+                            <select name="lon_col" class="form-select" required>
+                                <option value="">-- Select column --</option>
+                                <option value="longitude">longitude</option>
+                                <option value="lon">lon</option>
+                                <option value="Longitude">Longitude</option>
+                                <option value="LON">LON</option>
+                                <option value="LONGITUDE">LONGITUDE</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">▸ City Column <span>required</span></label>
+                        <div class="select-wrapper">
+                            <select name="city_col" class="form-select" required>
+                                <option value="">-- Select column --</option>
+                                <option value="City">City</option>
+                                <option value="city">city</option>
+                                <option value="CITY">CITY</option>
+                                <option value="location">location</option>
+                                <option value="Location">Location</option>
+                                <option value="district">district</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">▸ Crime Type Column <span>required</span></label>
+                        <div class="select-wrapper">
+                            <select name="crime_col" class="form-select" required>
+                                <option value="">-- Select column --</option>
+                                <option value="Crime Description">Crime Description</option>
+                                <option value="crime_type">crime_type</option>
+                                <option value="CrimeType">CrimeType</option>
+                                <option value="crime">crime</option>
+                                <option value="type">type</option>
+                                <option value="category">category</option>
+                                <option value="Category">Category</option>
+                                <option value="offense">offense</option>
+                                <option value="Offense">Offense</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit" id="submit-btn">UPLOAD &amp; ANALYSE</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-label">● LIVE</div>
+        <div class="status-ticker">UPLOAD MODULE ACTIVE // CSV FORMAT REQUIRED // DBSCAN WILL CLUSTER AFTER UPLOAD // RANDOM FOREST MODEL WILL TRAIN ON NEW DATA // ALL ZONES MONITORED // OFFICER {{ username }} AUTHENTICATED //</div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('csv-file');
+        const fileChosen = document.getElementById('file-chosen');
+        fileInput.addEventListener('change', function () {
+            if (this.files.length > 0) {
+                fileChosen.textContent = '✔ ' + this.files[0].name;
+                fileChosen.style.display = 'block';
+                dropZone.style.borderColor = 'var(--green)';
+            }
+        });
+        dropZone.addEventListener('dragover', function (e) { e.preventDefault(); this.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', function () { this.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', function (e) {
+            e.preventDefault(); this.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                fileInput.files = files;
+                fileChosen.textContent = '✔ ' + files[0].name;
+                fileChosen.style.display = 'block';
+                dropZone.style.borderColor = 'var(--green)';
+            } else { alert('Please drop a .csv file only.'); }
+        });
+        document.getElementById('upload-form').addEventListener('submit', function (e) {
+            const selects = this.querySelectorAll('select');
+            for (let s of selects) {
+                if (!s.value) {
+                    e.preventDefault();
+                    alert('Please select all four column dropdowns before uploading.');
+                    return;
+                }
+            }
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'PROCESSING...';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predict Crime - Crime Spot Detection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+        :root{--red:#e63946;--red-dark:#b5202c;--gold:#f4a261;--green:#2ec97a;--blue:#4a9eff;
+              --dark:#0a0a0f;--dark-2:#111118;--dark-3:#1a1a24;--dark-4:#22222f;
+              --border:rgba(255,255,255,0.07);--text:#e8e8f0;--text-dim:#7a7a9a;
+              --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--display:'Bebas Neue',sans-serif}
+        body{background:var(--dark);color:var(--text);font-family:var(--sans);min-height:100vh}
+        body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(230,57,70,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(230,57,70,0.025) 1px,transparent 1px);background-size:40px 40px;animation:gridShift 20s linear infinite;z-index:0;pointer-events:none}
+        @keyframes gridShift{0%{transform:translate(0,0)}100%{transform:translate(40px,40px)}}
+        .scanlines{position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);z-index:1;pointer-events:none}
+        .side-accent{position:fixed;top:0;bottom:0;width:3px;z-index:2;pointer-events:none}
+        .side-accent.left{left:0;background:linear-gradient(to bottom,transparent,var(--red),transparent)}
+        .side-accent.right{right:0;background:linear-gradient(to bottom,transparent,var(--red-dark),transparent)}
+        .navbar{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;backdrop-filter:blur(12px)}
+        .navbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(to right,var(--red),transparent,var(--red));opacity:0.35}
+        .nav-brand{font-family:var(--display);font-size:22px;letter-spacing:0.1em;color:var(--text)}
+        .nav-brand span{color:var(--red)}
+        .nav-links{display:flex;align-items:center;gap:4px}
+        .nav-links a{font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);text-decoration:none;padding:6px 14px;border:1px solid transparent;transition:all 0.2s}
+        .nav-links a:hover{color:var(--text);border-color:var(--border);background:var(--dark-3)}
+        .nav-links a.active{color:var(--red);border-color:rgba(230,57,70,0.3);background:rgba(230,57,70,0.05)}
+        .nav-links a.nav-logout{color:var(--red);border-color:rgba(230,57,70,0.2)}
+        .nav-links a.nav-logout:hover{background:rgba(230,57,70,0.1);border-color:var(--red)}
+        .nav-user{font-family:var(--mono);font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:6px}
+        .nav-user::before{content:'●';color:var(--green);font-size:8px;animation:pulse 2s ease-in-out infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+        .container{position:relative;z-index:5;max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+        .alert{font-family:var(--mono);font-size:12px;padding:10px 14px;margin-bottom:14px;border-left:3px solid;letter-spacing:0.04em}
+        .alert-danger{background:rgba(230,57,70,0.1);border-color:var(--red);color:#ff8a94}
+        .alert-success{background:rgba(46,201,122,0.08);border-color:var(--green);color:#6eefaa}
+        .alert-warning{background:rgba(244,162,97,0.1);border-color:var(--gold);color:var(--gold)}
+        .alert-info{background:rgba(74,158,255,0.1);border-color:var(--blue);color:#90b4ff}
+        .page-header{margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border);animation:fadeUp 0.4s ease forwards}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+        .page-header h1{font-family:var(--display);font-size:40px;letter-spacing:0.05em}
+        .page-header h1 span{color:var(--red)}
+        .page-header p{font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px}
+        .page-header p::before{content:'// ';color:var(--red);opacity:0.7}
+        .section-title{font-family:var(--display);font-size:16px;letter-spacing:0.1em;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+        .section-title::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}
+        /* 3-column layout */
+        .predict-layout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+        .card{background:var(--dark-3);border:1px solid var(--border);padding:22px;position:relative;animation:fadeUp 0.4s 0.1s ease both}
+        .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+        .card.red::before{background:linear-gradient(to right,var(--red),transparent)}
+        .card.green::before{background:linear-gradient(to right,var(--green),transparent)}
+        .card.gold::before{background:linear-gradient(to right,var(--gold),transparent)}
+        /* Form */
+        .form-group{margin-bottom:16px}
+        .form-label{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.15em;text-transform:uppercase;display:block;margin-bottom:6px}
+        .input-wrapper{position:relative}
+        .input-prefix{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:12px;color:var(--red);opacity:0.8;pointer-events:none}
+        .form-input{width:100%;background:var(--dark-2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 12px 10px 34px;outline:none;transition:border-color 0.2s;letter-spacing:0.03em}
+        .form-input::placeholder{color:rgba(122,122,154,0.4);font-size:12px}
+        .form-input:focus{border-color:var(--red);background:rgba(230,57,70,0.03)}
+        .form-select{width:100%;background:var(--dark-2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 12px 10px 34px;outline:none;appearance:none;transition:border-color 0.2s}
+        .form-select:focus{border-color:var(--red)}
+        .form-select option{background:var(--dark-2)}
+        .input-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .btn-submit{width:100%;background:var(--red);color:white;font-family:var(--display);font-size:19px;letter-spacing:0.15em;padding:12px;border:none;cursor:pointer;position:relative;overflow:hidden;transition:background 0.2s}
+        .btn-submit::after{content:'';position:absolute;inset:0;background:linear-gradient(to right,transparent,rgba(255,255,255,0.08),transparent);transform:translateX(-100%);transition:transform 0.5s ease}
+        .btn-submit:hover{background:var(--red-dark)}
+        .btn-submit:hover::after{transform:translateX(100%)}
+        .btn-submit:active{transform:scale(0.99)}
+        .btn-submit:disabled{background:#333;cursor:not-allowed}
+        .model-info{background:var(--dark-2);border:1px solid var(--border);padding:14px;margin-top:12px}
+        .model-info h4{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);margin-bottom:10px}
+        .model-stats{display:flex}
+        .model-stat{flex:1;padding:8px;border-right:1px solid var(--border);text-align:center}
+        .model-stat:last-child{border-right:none}
+        .model-stat-val{font-family:var(--display);font-size:20px;color:var(--blue)}
+        .model-stat-lbl{font-family:var(--mono);font-size:8px;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
+        /* Phase 1 Result */
+        .result-label{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px}
+        .result-crime{font-family:var(--display);font-size:34px;letter-spacing:0.05em;color:var(--red);line-height:1;margin-bottom:5px}
+        .result-confidence{font-family:var(--mono);font-size:12px;color:var(--text-dim);letter-spacing:0.08em;margin-bottom:14px}
+        .result-confidence span{color:var(--green);font-size:14px}
+        .conf-bar-label{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px}
+        .conf-bar-bg{background:var(--dark-2);border:1px solid var(--border);height:8px;margin-bottom:14px}
+        .conf-bar-fill{height:100%;background:linear-gradient(to right,var(--red),var(--gold));transition:width 1s ease}
+        .top3-title{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px}
+        .top3-list{display:flex;flex-direction:column;gap:6px}
+        .top3-row{display:flex;align-items:center;gap:8px}
+        .top3-rank{font-family:var(--display);font-size:16px;color:var(--text-dim);width:16px;flex-shrink:0}
+        .top3-name{font-family:var(--mono);font-size:11px;color:var(--text);flex:1;letter-spacing:0.04em}
+        .top3-conf{font-family:var(--mono);font-size:11px;margin-right:5px}
+        .top3-row:nth-child(1) .top3-conf{color:var(--red)}
+        .top3-row:nth-child(2) .top3-conf{color:var(--gold)}
+        .top3-row:nth-child(3) .top3-conf{color:var(--green)}
+        .top3-bar{flex:1;height:4px;background:var(--dark-2)}
+        .top3-bar-fill{height:100%}
+        .top3-row:nth-child(1) .top3-bar-fill{background:var(--red)}
+        .top3-row:nth-child(2) .top3-bar-fill{background:var(--gold)}
+        .top3-row:nth-child(3) .top3-bar-fill{background:var(--green)}
+        /* Phase 4 Panels */
+        .info-panel{margin-top:12px;background:var(--dark-4);border:1px solid var(--border);padding:12px 14px}
+        .info-panel-title{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px}
+        .info-panel-item{font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:0.04em;padding:3px 0;line-height:1.6}
+        /* Phase 3 Probability */
+        .prob-score-label{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px}
+        .prob-gauge{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 12px;border:4px solid var(--dark-4)}
+        .prob-number{font-family:var(--display);font-size:38px;line-height:1}
+        .prob-pct{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.1em;margin-top:2px}
+        .prob-risk-badge{font-family:var(--display);font-size:15px;letter-spacing:0.12em;padding:5px 14px;display:inline-block;margin-bottom:14px}
+        .prob-bar-bg{background:var(--dark-4);border:1px solid var(--border);height:10px;margin-bottom:14px}
+        .prob-bar-fill{height:100%;transition:width 1.4s ease}
+        .prob-summary{background:var(--dark-4);border:1px solid var(--border);padding:10px 12px}
+        .prob-summary-title{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px}
+        .prob-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+        .ps-k{font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase}
+        .ps-v{font-family:var(--mono);font-size:12px;color:var(--blue)}
+        .prob-crime-list{display:flex;flex-direction:column;gap:5px;margin-top:12px}
+        .prob-crime-row{display:flex;align-items:center;gap:8px}
+        .prob-crime-name{font-family:var(--mono);font-size:10px;color:var(--text);flex:1;letter-spacing:0.04em}
+        .prob-crime-pct{font-family:var(--mono);font-size:11px;color:var(--gold);flex-shrink:0}
+        .prob-crime-bar-bg{width:44px;height:4px;background:var(--dark-4);flex-shrink:0}
+        .prob-crime-bar-fill{height:100%;background:var(--gold)}
+        /* Awaiting */
+        .no-result{background:var(--dark-3);border:1px solid var(--border);padding:36px 20px;text-align:center;animation:fadeUp 0.4s 0.15s ease both;position:relative}
+        .no-result::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(to right,var(--text-dim),transparent);opacity:0.2}
+        .no-result-icon{font-size:34px;margin-bottom:10px;opacity:0.4}
+        .no-result-title{font-family:var(--display);font-size:20px;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:5px}
+        .no-result-sub{font-family:var(--mono);font-size:10px;color:var(--text-dim);opacity:0.5;letter-spacing:0.06em}
+        /* Phase 4 Feedback */
+        .feedback-panel{margin-top:12px;background:var(--dark-4);border:1px solid var(--border);border-left:3px solid var(--green);padding:14px}
+        .feedback-title{font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px}
+        .feedback-btns{display:flex;gap:8px;margin-bottom:0}
+        .btn-yes{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;background:rgba(46,201,122,0.12);border:1px solid var(--green);color:var(--green);padding:7px 16px;cursor:pointer;transition:all 0.2s}
+        .btn-yes:hover{background:rgba(46,201,122,0.22)}
+        .btn-no{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.4);color:var(--red);padding:7px 16px;cursor:pointer;transition:all 0.2s}
+        .btn-no:hover{background:rgba(230,57,70,0.2)}
+        .correction-form{display:none;margin-top:12px}
+        .correction-form.show{display:block}
+        .corr-label{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px}
+        .corr-select{width:100%;background:var(--dark);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px;outline:none;appearance:none;margin-bottom:10px}
+        .corr-select:focus{border-color:var(--green)}
+        .btn-submit-fb{width:100%;font-family:var(--display);font-size:15px;letter-spacing:0.12em;background:var(--red);color:#fff;border:none;padding:10px;cursor:pointer;transition:opacity 0.2s}
+        .btn-submit-fb:hover{opacity:0.85}
+        .status-bar{position:fixed;bottom:0;left:0;right:0;height:28px;background:rgba(10,10,15,0.97);border-top:1px solid var(--border);display:flex;align-items:center;overflow:hidden;z-index:100}
+        .status-label{font-family:var(--mono);font-size:10px;color:var(--red);letter-spacing:0.1em;padding:0 12px;border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0}
+        .status-ticker{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.05em;white-space:nowrap;animation:ticker 40s linear infinite;padding-left:20px}
+        @keyframes ticker{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
+        @media(max-width:900px){.predict-layout{grid-template-columns:1fr 1fr}}
+        @media(max-width:600px){.predict-layout{grid-template-columns:1fr}.input-grid{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+<div class="scanlines"></div>
+<div class="side-accent left"></div>
+<div class="side-accent right"></div>
+
+<nav class="navbar">
+    <div class="nav-brand">🚔 <span>CRIME</span> SPOT DETECTION</div>
+    <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/upload">Upload Data</a>
+        <a href="/map">Crime Map</a>
+        <a href="/predict" class="active">Predict</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/logout" class="nav-logout">Logout</a>
+    </div>
+    <div class="nav-user">👮 {{ username }}</div>
+</nav>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for category, message in messages %}
+            <div class="alert alert-{{ category }}">⚡ {{ message }}</div>
+        {% endfor %}{% endif %}
+    {% endwith %}
+
+    <div class="page-header">
+        <h1>CRIME <span>PREDICTION</span></h1>
+        <p>Phase 1: Type · Phase 3: Probability · Phase 4: Context + Explanation + Feedback</p>
+    </div>
+
+    <div class="predict-layout">
+
+        <!-- COL 1: Input Form -->
+        <div>
+            <div class="section-title" style="color:var(--text)">INPUT PARAMETERS</div>
+            <div class="card red">
+                <form method="POST" action="/predict" id="predict-form">
+                    <div class="form-group">
+                        <label class="form-label">▸ Latitude</label>
+                        <div class="input-wrapper">
+                            <span class="input-prefix">⬡</span>
+                            <input type="number" name="latitude" step="0.0001" class="form-input"
+                                placeholder="e.g. 13.08"
+                                value="{{ prediction.lat if prediction else '' }}" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">▸ Longitude</label>
+                        <div class="input-wrapper">
+                            <span class="input-prefix">⬡</span>
+                            <input type="number" name="longitude" step="0.0001" class="form-input"
+                                placeholder="e.g. 80.27"
+                                value="{{ prediction.lon if prediction else '' }}" required>
+                        </div>
+                    </div>
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label class="form-label">▸ Hour (0–23)</label>
+                            <div class="input-wrapper">
+                                <span class="input-prefix">⏱</span>
+                                <input type="number" name="hour" min="0" max="23" class="form-input"
+                                    placeholder="e.g. 22"
+                                    value="{{ prediction.hour if prediction else '' }}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">▸ Day (1–7)</label>
+                            <div class="input-wrapper">
+                                <span class="input-prefix">📅</span>
+                                <select name="day_of_week" class="form-select">
+                                    <option value="1" {% if prediction and prediction.day==1 %}selected{% endif %}>1–Mon</option>
+                                    <option value="2" {% if prediction and prediction.day==2 %}selected{% endif %}>2–Tue</option>
+                                    <option value="3" {% if prediction and prediction.day==3 %}selected{% endif %}>3–Wed</option>
+                                    <option value="4" {% if prediction and prediction.day==4 %}selected{% endif %}>4–Thu</option>
+                                    <option value="5" {% if prediction and prediction.day==5 %}selected{% endif %}>5–Fri</option>
+                                    <option value="6" {% if prediction and prediction.day==6 %}selected{% endif %}>6–Sat</option>
+                                    <option value="7" {% if prediction and prediction.day==7 %}selected{% endif %}>7–Sun</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-submit" id="predict-btn">ANALYSE &amp; PREDICT</button>
+                </form>
+            </div>
+
+            <div class="model-info">
+                <h4>🤖 Model Information</h4>
+                <div class="model-stats">
+                    <div class="model-stat"><div class="model-stat-val">RF</div><div class="model-stat-lbl">Algorithm</div></div>
+                    <div class="model-stat"><div class="model-stat-val">100</div><div class="model-stat-lbl">Trees</div></div>
+                    <div class="model-stat"><div class="model-stat-val">PCA</div><div class="model-stat-lbl">Reduction</div></div>
+                    <div class="model-stat"><div class="model-stat-val">{{ crime_types|length }}</div><div class="model-stat-lbl">Classes</div></div>
+                    <div class="model-stat"><div class="model-stat-val">{{ feedback_count }}</div><div class="model-stat-lbl">Feedback</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COL 2: Crime Type Result + Context + Explanation + Feedback -->
+        <div>
+            <div class="section-title" style="color:var(--green)">CRIME TYPE + ANALYSIS</div>
+            {% if prediction %}
+            <div class="card green" style="animation-delay:0.15s">
+                <div class="result-label">▸ Predicted Crime Type</div>
+                <div class="result-crime">{{ prediction.crime_type }}</div>
+                <div class="result-confidence">Confidence: <span>{{ prediction.confidence }}%</span></div>
+                <div class="conf-bar-label">Confidence Score</div>
+                <div class="conf-bar-bg">
+                    <div class="conf-bar-fill" id="conf-bar" style="width:0%"></div>
+                </div>
+                <div class="top3-title">Top 3 Likely Crime Types</div>
+                <div class="top3-list">
+                    {% for crime, conf in prediction.top3 %}
+                    <div class="top3-row">
+                        <div class="top3-rank">{{ loop.index }}</div>
+                        <div class="top3-name">{{ crime }}</div>
+                        <div class="top3-conf">{{ conf }}%</div>
+                        <div class="top3-bar"><div class="top3-bar-fill" style="width:{{ conf }}%"></div></div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Phase 4: Context Factors -->
+                {% if prediction.context_factors %}
+                <div class="info-panel" style="border-left:3px solid var(--blue);">
+                    <div class="info-panel-title" style="color:var(--blue);">⚡ CONTEXT ADJUSTMENTS</div>
+                    {% for factor in prediction.context_factors %}
+                    <div class="info-panel-item">{{ factor }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Phase 4: Explanation Engine -->
+                {% if prediction.explanation %}
+                <div class="info-panel" style="border-left:3px solid var(--gold);">
+                    <div class="info-panel-title" style="color:var(--gold);">🧠 WHY THIS PREDICTION?</div>
+                    {% for reason in prediction.explanation %}
+                    <div class="info-panel-item">{{ reason }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Phase 4: Feedback Form -->
+                <div class="feedback-panel">
+                    <div class="feedback-title">💬 WAS THIS PREDICTION CORRECT?</div>
+                    <div class="feedback-btns">
+                        <!-- YES -->
+                        <form method="POST" action="/save_feedback" style="display:inline;">
+                            <input type="hidden" name="predicted_crime" value="{{ prediction.crime_type }}">
+                            <input type="hidden" name="actual_crime"    value="{{ prediction.crime_type }}">
+                            <input type="hidden" name="latitude"        value="{{ prediction.lat }}">
+                            <input type="hidden" name="longitude"       value="{{ prediction.lon }}">
+                            <input type="hidden" name="was_correct"     value="yes">
+                            <button type="submit" class="btn-yes">✔ YES</button>
+                        </form>
+                        <!-- NO -->
+                        <button class="btn-no"
+                            onclick="document.getElementById('correction-form').classList.add('show');this.style.display='none';">
+                            ✘ NO
+                        </button>
+                    </div>
+                    <!-- Correction Input -->
+                    <div id="correction-form" class="correction-form">
+                        <form method="POST" action="/save_feedback">
+                            <input type="hidden" name="predicted_crime" value="{{ prediction.crime_type }}">
+                            <input type="hidden" name="latitude"        value="{{ prediction.lat }}">
+                            <input type="hidden" name="longitude"       value="{{ prediction.lon }}">
+                            <input type="hidden" name="was_correct"     value="no">
+                            <label class="corr-label">▸ Actual Crime Type</label>
+                            <select name="actual_crime" class="corr-select">
+                                {% for ct in crime_types %}
+                                <option value="{{ ct }}">{{ ct }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn-submit-fb">SUBMIT FEEDBACK</button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+            {% else %}
+            <div class="no-result">
+                <div class="no-result-icon">🔍</div>
+                <div class="no-result-title">AWAITING INPUT</div>
+                <div class="no-result-sub">Enter location &amp; time<br>to predict crime type</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- COL 3: Crime Probability (Phase 3) -->
+        <div>
+            <div class="section-title" style="color:var(--gold)">CRIME PROBABILITY</div>
+            {% if probability %}
+            <div class="card gold" style="animation-delay:0.2s">
+                <div class="prob-score-label" style="text-align:center;">▸ Crime Risk Score</div>
+                <div class="prob-gauge"
+                     style="border-color:{{ probability.risk_color }};box-shadow:0 0 18px {{ probability.risk_color }}33;">
+                    <div class="prob-number" style="color:{{ probability.risk_color }};">{{ probability.probability }}</div>
+                    <div class="prob-pct">% RISK</div>
+                </div>
+                <div style="text-align:center;">
+                    <span class="prob-risk-badge"
+                          style="color:{{ probability.risk_color }};border:1px solid {{ probability.risk_color }}55;background:{{ probability.risk_color }}18;">
+                        {{ probability.risk_level }}
+                    </span>
+                </div>
+                <div class="prob-bar-bg">
+                    <div class="prob-bar-fill" id="prob-bar"
+                         style="width:0%;background:{{ probability.risk_color }};"></div>
+                </div>
+                <!-- Top crime types -->
+                <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">
+                    Most Likely Crime Types
+                </div>
+                <div class="prob-crime-list">
+                    {% for crime, pct in probability.top3 %}
+                    <div class="prob-crime-row">
+                        <div class="prob-crime-name">{{ crime }}</div>
+                        <div class="prob-crime-pct">{{ pct }}%</div>
+                        <div class="prob-crime-bar-bg">
+                            <div class="prob-crime-bar-fill" style="width:{{ pct }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <!-- Input summary -->
+                <div class="prob-summary" style="margin-top:14px;">
+                    <div class="prob-summary-title">Location &amp; Time</div>
+                    <div class="prob-summary-grid">
+                        <div><div class="ps-k">Latitude</div><div class="ps-v">{{ probability.lat }}</div></div>
+                        <div><div class="ps-k">Longitude</div><div class="ps-v">{{ probability.lon }}</div></div>
+                        <div><div class="ps-k">Hour</div><div class="ps-v">{{ probability.hour }}:00</div></div>
+                        <div><div class="ps-k">Day</div><div class="ps-v">Day {{ probability.day }}</div></div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="no-result" style="animation-delay:0.2s;">
+                <div class="no-result-icon">📊</div>
+                <div class="no-result-title">AWAITING INPUT</div>
+                <div class="no-result-sub">Probability score<br>appears here after prediction</div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<div class="status-bar">
+    <div class="status-label">● LIVE</div>
+    <div class="status-ticker">
+        PREDICTION MODULE ACTIVE // RF MODEL LOADED // PCA REDUCTION APPLIED //
+        {{ crime_types|length }} CRIME CLASSES // FEEDBACK COLLECTED: {{ feedback_count }} //
+        OFFICER {{ username }} ACTIVE // CONTEXT + EXPLANATION ENABLED //
+    </div>
+</div>
+
+<script>
+    {% if prediction %}
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            document.getElementById('conf-bar').style.width = '{{ prediction.confidence }}%';
+            {% if probability %}
+            document.getElementById('prob-bar').style.width = '{{ probability.probability }}%';
+            {% endif %}
+        }, 200);
+    });
+    {% endif %}
+    document.getElementById('predict-form').addEventListener('submit', function () {
+        const btn = document.getElementById('predict-btn');
+        btn.disabled = true;
+        btn.textContent = 'PROCESSING...';
+    });
+</script>
+</body>
+</html>

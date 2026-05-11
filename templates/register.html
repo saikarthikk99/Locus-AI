@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crime Spot Detection - Register</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --red: #e63946; --red-dark: #b5202c; --gold: #f4a261;
+            --dark: #0a0a0f; --dark-2: #111118; --dark-3: #1a1a24; --dark-4: #22222f;
+            --border: rgba(255,255,255,0.07); --text: #e8e8f0; --text-dim: #7a7a9a;
+            --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif; --display: 'Bebas Neue', sans-serif;
+        }
+        body { background-color: var(--dark); color: var(--text); font-family: var(--sans); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(230,57,70,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(230,57,70,0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridShift 20s linear infinite; z-index: 0; }
+        @keyframes gridShift { 0% { transform: translate(0,0); } 100% { transform: translate(40px,40px); } }
+        body::after { content: ''; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 700px; height: 700px; background: radial-gradient(circle, rgba(230,57,70,0.06) 0%, transparent 70%); z-index: 0; pointer-events: none; }
+        .scanlines { position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px); z-index: 1; pointer-events: none; }
+        .side-accent { position: fixed; top: 0; bottom: 0; width: 3px; z-index: 2; }
+        .side-accent.left  { left: 0;  background: linear-gradient(to bottom, transparent, var(--red), transparent); }
+        .side-accent.right { right: 0; background: linear-gradient(to bottom, transparent, var(--red-dark), transparent); }
+        .corner { position: fixed; width: 40px; height: 40px; z-index: 2; opacity: 0.4; }
+        .corner.tl { top: 16px; left: 16px;   border-top: 2px solid var(--red); border-left: 2px solid var(--red); }
+        .corner.tr { top: 16px; right: 16px;  border-top: 2px solid var(--red); border-right: 2px solid var(--red); }
+        .corner.bl { bottom: 16px; left: 16px;  border-bottom: 2px solid var(--red); border-left: 2px solid var(--red); }
+        .corner.br { bottom: 16px; right: 16px; border-bottom: 2px solid var(--red); border-right: 2px solid var(--red); }
+        .status-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 28px; background: rgba(10,10,15,0.9); border-top: 1px solid var(--border); display: flex; align-items: center; overflow: hidden; z-index: 10; }
+        .status-label { font-family: var(--mono); font-size: 10px; color: var(--red); letter-spacing: 0.1em; padding: 0 12px; border-right: 1px solid var(--border); white-space: nowrap; flex-shrink: 0; }
+        .status-ticker { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.05em; white-space: nowrap; animation: ticker 30s linear infinite; padding-left: 20px; }
+        @keyframes ticker { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+        .login-wrapper { position: relative; z-index: 5; width: 100%; max-width: 420px; padding: 20px; animation: fadeUp 0.6s ease forwards; opacity: 0; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        .login-header { margin-bottom: 32px; }
+        .badge-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+        .badge-icon { width: 44px; height: 44px; background: var(--red); clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; animation: badgePulse 3s ease-in-out infinite; }
+        @keyframes badgePulse { 0%,100% { box-shadow: 0 0 0 0 rgba(230,57,70,0); } 50% { box-shadow: 0 0 0 8px rgba(230,57,70,0.1); } }
+        .system-id { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; }
+        .login-title { font-family: var(--display); font-size: 52px; letter-spacing: 0.05em; line-height: 0.95; color: var(--text); }
+        .login-title span { color: var(--red); }
+        .login-subtitle { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+        .login-subtitle::before { content: '//'; color: var(--red); opacity: 0.7; }
+        .divider { height: 1px; background: linear-gradient(to right, var(--red), var(--border)); margin: 24px 0; }
+        .alert { font-family: var(--mono); font-size: 12px; padding: 10px 14px; margin-bottom: 16px; border-left: 3px solid; letter-spacing: 0.04em; }
+        .alert-danger  { background: rgba(230,57,70,0.1);  border-color: var(--red);  color: #ff8a94; }
+        .alert-success { background: rgba(50,200,100,0.08); border-color: #32c864;    color: #6eefaa; }
+        .alert-warning { background: rgba(244,162,97,0.1);  border-color: var(--gold); color: var(--gold); }
+        .alert-info    { background: rgba(80,140,255,0.1);  border-color: #508cff;    color: #90b4ff; }
+        .login-card { background: var(--dark-3); border: 1px solid var(--border); padding: 28px; position: relative; }
+        .login-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(to right, var(--red), transparent); }
+        .form-group { margin-bottom: 20px; }
+        .form-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; display: block; margin-bottom: 8px; }
+        .input-wrapper { position: relative; }
+        .input-prefix { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 12px; color: var(--red); opacity: 0.8; pointer-events: none; }
+        .form-input { width: 100%; background: var(--dark-2); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 14px; padding: 12px 12px 12px 36px; outline: none; transition: border-color 0.2s, background 0.2s; letter-spacing: 0.03em; }
+        .form-input::placeholder { color: rgba(122,122,154,0.4); font-size: 12px; }
+        .form-input:focus { border-color: var(--red); background: rgba(230,57,70,0.03); }
+        .key-input { border-color: rgba(244,162,97,0.3); }
+        .key-input:focus { border-color: var(--gold); background: rgba(244,162,97,0.03); }
+        .key-prefix { color: var(--gold) !important; }
+        .field-hint { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.05em; margin-top: -12px; margin-bottom: 20px; }
+        .form-divider { height: 1px; background: var(--border); margin: 4px 0 20px; }
+        .btn-submit { width: 100%; background: var(--red); color: white; font-family: var(--display); font-size: 20px; letter-spacing: 0.15em; padding: 14px; border: none; cursor: pointer; position: relative; overflow: hidden; transition: background 0.2s; margin-top: 8px; }
+        .btn-submit::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent); transform: translateX(-100%); transition: transform 0.5s ease; }
+        .btn-submit:hover { background: var(--red-dark); }
+        .btn-submit:hover::after { transform: translateX(100%); }
+        .btn-submit:active { transform: scale(0.99); }
+        .form-footer { margin-top: 20px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-align: center; letter-spacing: 0.05em; }
+        .form-footer a { color: var(--red); text-decoration: none; border-bottom: 1px solid rgba(230,57,70,0.3); transition: border-color 0.2s, color 0.2s; }
+        .form-footer a:hover { color: #ff6b78; border-color: #ff6b78; }
+        .stat-row { display: flex; gap: 1px; margin-top: 20px; }
+        .stat-item { flex: 1; background: var(--dark-4); padding: 10px 8px; text-align: center; border: 1px solid var(--border); }
+        .stat-val  { font-family: var(--display); font-size: 20px; color: var(--red); line-height: 1; }
+        .stat-lbl  { font-family: var(--mono); font-size: 8px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+        .cursor { display: inline-block; width: 8px; height: 14px; background: var(--red); vertical-align: middle; animation: blink 1s step-end infinite; margin-left: 4px; }
+    </style>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <div class="side-accent left"></div>
+    <div class="side-accent right"></div>
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+    <div class="login-wrapper">
+        <div class="login-header">
+            <div class="badge-row">
+                <div class="badge-icon">🚔</div>
+                <div class="system-id">SYS-ID: CSD-2025 // NEW OFFICER REGISTRATION</div>
+            </div>
+            <div class="login-title">OFFICER<br><span>REGIST</span><br>RATION<span class="cursor"></span></div>
+            <div class="login-subtitle">Create Your Authorized Account</div>
+        </div>
+        <div class="divider"></div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}{% for category, message in messages %}
+                <div class="alert alert-{{ category }}">⚡ {{ message }}</div>
+            {% endfor %}{% endif %}
+        {% endwith %}
+        <div class="login-card">
+            <form method="POST" action="/register">
+                <div class="form-group">
+                    <label class="form-label">Officer ID / Username</label>
+                    <div class="input-wrapper">
+                        <span class="input-prefix">▸</span>
+                        <input type="text" name="username" class="form-input" placeholder="Choose a username" required autocomplete="username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Access Code / Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-prefix">▸</span>
+                        <input type="password" name="password" class="form-input" placeholder="Choose a password" required autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="form-divider"></div>
+                <div class="form-group">
+                    <label class="form-label">🔑 Department Secret Key</label>
+                    <div class="input-wrapper">
+                        <span class="input-prefix key-prefix">▸</span>
+                        <input type="password" name="secret_key" class="form-input key-input" placeholder="Enter key issued by department" required>
+                    </div>
+                </div>
+                <p class="field-hint">// Only authorized officers have this key</p>
+                <button type="submit" class="btn-submit">REGISTER</button>
+            </form>
+            <div class="form-footer">Already have an account? <a href="/login">Login here</a></div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-item"><div class="stat-val">ML</div><div class="stat-lbl">Powered</div></div>
+            <div class="stat-item"><div class="stat-val">256</div><div class="stat-lbl">Bit Encrypt</div></div>
+            <div class="stat-item"><div class="stat-val">24/7</div><div class="stat-lbl">Monitoring</div></div>
+            <div class="stat-item"><div class="stat-val">RF</div><div class="stat-lbl">Random Forest</div></div>
+        </div>
+    </div>
+    <div class="status-bar">
+        <div class="status-label">● LIVE</div>
+        <div class="status-ticker">SYSTEM ONLINE // REGISTRATION PORTAL ACTIVE // DEPARTMENT KEY REQUIRED // UNAUTHORIZED ACCESS WILL BE LOGGED // ALL ZONES MONITORED // DBSCAN CLUSTERING ACTIVE // RANDOM FOREST MODEL LOADED //</div>
+    </div>
+</body>
+</html>
