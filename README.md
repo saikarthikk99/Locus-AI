@@ -1,9 +1,8 @@
 # Crime Hotspot Detection & Crime Prediction
-### Mathematics for Computing (22MAT122) — Team 05
 **Amrita Vishwa Vidyapeetham**
 
 **Team:** Rahul Anurag Sai, T. Sathvika, T. Sri Nikesh, V V S Karthik  
-**Faculty:** Dr. Ashik Suresh
+
 
 ---
 
